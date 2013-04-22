@@ -19,7 +19,8 @@ bin
 include
 .noseids
 pip-log.txt
-.tox
+.tox/
+.travis-solo/
 
 syntax: re
 ^.ropeproject/.*$

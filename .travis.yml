@@ -1,23 +1,30 @@
 language: python
-python: 2.7
+python:
+  - '2.5'
+  - '2.6'
+  - '2.7'
 env:
-  - TOX_ENV=py25selects
-  - TOX_ENV=py25poll
-  - TOX_ENV=py26selects
-  - TOX_ENV=py26poll
-  - TOX_ENV=py26epolls
-  - TOX_ENV=py27selects
-  - TOX_ENV=py27poll
-  - TOX_ENV=py27epolls
+  - EVENTLET_HUB=selects
+  - EVENTLET_HUB=poll
+  - EVENTLET_HUB=epolls
 matrix:
+  exclude:
+    - python: '2.5'
+      env: EVENTLET_HUB=epolls
   allow_failures:
-    - env: TOX_ENV=py25selects
-    - env: TOX_ENV=py25poll
+    - python: '2.5'
+      env: EVENTLET_HUB=selects
+    - python: '2.5'
+      env: EVENTLET_HUB=poll
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq libssl-dev libmysqlclient-dev libpq-dev
-  - pip install tox
+  - sudo apt-get install -qq libssl-dev libmysqlclient-dev libpq-dev libzmq3-dev
+  - pip install "greenlet>=0.3" nose==1.2.1 pyopenssl==0.13 MySQL-python==1.2.4 psycopg2==2.4.6
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.5' ]]; then pip install "pyzmq<2.2"; fi
+  - if [[ $TRAVIS_PYTHON_VERSION != '2.5' ]]; then pip install pyzmq==2.2.0.1; fi
 before_script:
   - "export EVENTLET_DB_TEST_AUTH='{\"psycopg2\": {\"user\": \"postgres\"}, \"MySQLdb\": {\"passwd\": \"\", \"host\": \"localhost\", \"user\": \"root\"}}'"
 script:
-  - tox -e $TOX_ENV
+  - nosetests --verbose tests/
+  - nosetests --verbose --with-doctest eventlet.coros eventlet.event
+    eventlet.pool eventlet.pools eventlet.proc eventlet.queue eventlet.timeout
