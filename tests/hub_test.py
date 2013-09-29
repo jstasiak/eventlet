@@ -6,7 +6,6 @@ from tests.patcher_test import ProcessBase
 import time
 import eventlet
 from eventlet import hubs
-from eventlet.green import socket
 from eventlet.event import Event
 from eventlet.semaphore import Semaphore
 from eventlet.support import greenlets
@@ -25,7 +24,6 @@ class TestTimerCleanup(LimitedTestCase):
     def test_cancel_immediate(self):
         hub = hubs.get_hub()
         stimers = hub.get_timers_count()
-        scanceled = hub.timers_canceled
         for i in xrange(2000):
             t = hubs.get_hub().schedule_call_global(60, noop)
             t.cancel()
@@ -39,7 +37,6 @@ class TestTimerCleanup(LimitedTestCase):
     def test_cancel_accumulated(self):
         hub = hubs.get_hub()
         stimers = hub.get_timers_count()
-        scanceled = hub.timers_canceled
         for i in xrange(2000):
             t = hubs.get_hub().schedule_call_global(60, noop)
             eventlet.sleep()
@@ -59,7 +56,6 @@ class TestTimerCleanup(LimitedTestCase):
         hub = hubs.get_hub()
         uncanceled_timers = []
         stimers = hub.get_timers_count()
-        scanceled = hub.timers_canceled
         for i in xrange(1000):
             # 2/3rds of new timers are uncanceled
             t = hubs.get_hub().schedule_call_global(60, noop)
@@ -251,7 +247,6 @@ class TestSuspend(LimitedTestCase):
     TEST_TIMEOUT = 3
 
     def test_suspend_doesnt_crash(self):
-        import errno
         import os
         import shutil
         import signal
@@ -259,7 +254,7 @@ class TestSuspend(LimitedTestCase):
         import sys
         import tempfile
         self.tempdir = tempfile.mkdtemp('test_suspend')
-        filename = os.path.join(self.tempdir,  'test_suspend.py')
+        filename = os.path.join(self.tempdir, 'test_suspend.py')
         fd = open(filename, "w")
         fd.write("""import eventlet
 eventlet.Timeout(0.5)
