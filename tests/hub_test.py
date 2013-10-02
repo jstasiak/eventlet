@@ -7,6 +7,7 @@ import time
 import eventlet
 from eventlet import hubs
 from eventlet.event import Event
+from eventlet.green import urllib2
 from eventlet.semaphore import Semaphore
 from eventlet.support import greenlets
 
@@ -81,6 +82,7 @@ class TestTimerCleanup(LimitedTestCase):
 
 
 class TestScheduleCall(LimitedTestCase):
+    TEST_TIMEOUT = 10
 
     def test_local(self):
         lst = [1]
@@ -104,6 +106,35 @@ class TestScheduleCall(LimitedTestCase):
         while len(lst) < 3:
             eventlet.sleep(DELAY)
         self.assertEquals(lst, [1, 2, 3])
+
+    def test_prefer_io_waiting_tasks_to_timeouts(self):
+        def fetch(url, timeout=3):
+            try:
+                with eventlet.Timeout(timeout):
+                    urllib2.urlopen(url).read()
+            except eventlet.Timeout:
+                return 'timeout'
+
+            dt = 0.0
+            x = 0
+
+            while dt < timeout + 1:
+                start = time.time()
+                for i in xrange(1, 1000000):
+                    x = i + x / i
+                dt += time.time() - start
+
+            return 'ok'
+
+        url = 'http://eventlet.net'
+        threads = []
+
+        for i in xrange(10):
+            threads.append(eventlet.spawn(fetch, url))
+            eventlet.sleep(0)
+
+        results = [thread.wait() for thread in threads]
+        self.assertEqual(tuple(set(results)), ('ok',))
 
 
 class TestDebug(LimitedTestCase):
@@ -416,6 +447,7 @@ print('ok')
         self.write_to_tempfile('newmod', module_source)
         output, _ = self.launch_subprocess('newmod.py')
         self.assertEqual(output, 'kqueue tried\nok\n')
+
 
 
 if __name__ == '__main__':
